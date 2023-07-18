@@ -1,0 +1,46 @@
+# launchファイルを立ち上げてエラーがあるかどうか確認するガバガバテスト
+name: test
+on:
+  push:
+    branches: main
+jobs:
+  test:
+    runs-on: ubuntu-22.04
+    container: ryuichiueda/ubuntu22.04-ros2:latest
+    steps:
+      - name: Checkout voicevox_ros2
+        uses: actions/checkout@v3
+        with:
+          ref: main
+
+      - name: Move voicevox_ros2 to ros2_ws/src
+        run: |
+          mkdir -p /root/ros2_ws/src/voicevox_ros2
+          rsync -av ./ /root/ros2_ws/src/voicevox_ros2
+
+      - name: Checkout rione_interfaces
+        uses: actions/checkout@v3
+        with:
+          repository: rione/home_rione_interfaces
+          ref: main
+
+      - name: Move rione_interfaces to ros2_ws/src
+        run: |
+          mkdir -p /root/ros2_ws/src/rione_interfaces
+          rsync -av ./ /root/ros2_ws/src/rione_interfaces
+
+      - name: Install dependencies
+        run: |
+          apt install -y python3-pip portaudio19-dev
+          pip install -r /root/ros2_ws/src/voicevox_ros2/requirements.txt
+
+      - name: Build and test
+        run: |
+          cd /root/ros2_ws
+          source /opt/ros/humble/setup.bash
+          colcon build
+          echo "Build done"
+          source install/setup.bash
+          bash src/voicevox_ros2/test/test.bash
+          echo "Test done"
+        shell: bash
